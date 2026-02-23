@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>哄睡神器 — 臭屁宝的安睡小助手</title>
+    <meta name="description" content="一款为宝宝打造的哄睡神器，包含白噪音、摇篮曲、夜灯动画和睡眠定时器。">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Outfit:wght@300;400;500;600;700&family=Noto+Sans+SC:wght@300;400;500;700&display=swap"
+        rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+    <!-- Night Sky Canvas Background -->
+    <canvas id="nightSky"></canvas>
+
+    <!-- Night Light Overlay -->
+    <div class="nightlight-overlay" id="nightlightOverlay"></div>
+
+    <!-- Moon Glow Overlay -->
+    <div class="moon-container" id="moonContainer">
+        <div class="moon">
+            <div class="moon-crater moon-crater-1"></div>
+            <div class="moon-crater moon-crater-2"></div>
+            <div class="moon-crater moon-crater-3"></div>
+        </div>
+        <div class="moon-glow"></div>
+    </div>
+
+    <!-- Floating Clouds -->
+    <div class="clouds-container">
+        <div class="cloud cloud-1"></div>
+        <div class="cloud cloud-2"></div>
+        <div class="cloud cloud-3"></div>
+    </div>
+
+    <!-- Main App Container -->
+    <div class="app-container">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-content">
+                <h1 class="app-title">
+                    <span class="title-icon">🌙</span>
+                    哄睡神器
+                </h1>
+                <div class="header-right">
+                    <span class="clock" id="clock">00:00</span>
+                </div>
+            </div>
+            <p class="app-subtitle">臭屁宝的安睡小助手 💤</p>
+        </header>
+
+        <!-- Sound Cards Section -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🔊</span>
+                白噪音
+            </h2>
+            <div class="sound-grid" id="noiseGrid">
+                <button class="sound-card" data-sound="white" id="sound-white">
+                    <div class="sound-card-icon">🌫️</div>
+                    <div class="sound-card-label">白噪音</div>
+                    <div class="sound-card-bar">
+                        <input type="range" min="0" max="100" value="50" class="mini-volume" data-sound="white">
+                    </div>
+                </button>
+                <button class="sound-card" data-sound="pink" id="sound-pink">
+                    <div class="sound-card-icon">🌸</div>
+                    <div class="sound-card-label">粉噪音</div>
+                    <div class="sound-card-bar">
+                        <input type="range" min="0" max="100" value="50" class="mini-volume" data-sound="pink">
+                    </div>
+                </button>
+                <button class="sound-card" data-sound="brown" id="sound-brown">
+                    <div class="sound-card-icon">🍂</div>
+                    <div class="sound-card-label">棕噪音</div>
+                    <div class="sound-card-bar">
+                        <input type="range" min="0" max="100" value="50" class="mini-volume" data-sound="brown">
+                    </div>
+                </button>
+                <button class="sound-card" data-sound="rain" id="sound-rain">
+                    <div class="sound-card-icon">🌧️</div>
+                    <div class="sound-card-label">雨声</div>
+                    <div class="sound-card-bar">
+                        <input type="range" min="0" max="100" value="50" class="mini-volume" data-sound="rain">
+                    </div>
+                </button>
+                <button class="sound-card" data-sound="ocean" id="sound-ocean">
+                    <div class="sound-card-icon">🌊</div>
+                    <div class="sound-card-label">海浪</div>
+                    <div class="sound-card-bar">
+                        <input type="range" min="0" max="100" value="50" class="mini-volume" data-sound="ocean">
+                    </div>
+                </button>
+                <button class="sound-card" data-sound="heartbeat" id="sound-heartbeat">
+                    <div class="sound-card-icon">💓</div>
+                    <div class="sound-card-label">心跳</div>
+                    <div class="sound-card-bar">
+                        <input type="range" min="0" max="100" value="50" class="mini-volume" data-sound="heartbeat">
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- Lullaby Section -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="section-icon">🎵</span>
+                摇篮曲
+            </h2>
+            <div class="lullaby-grid" id="lullabyGrid">
+                <button class="lullaby-card" data-lullaby="twinkle" id="lullaby-twinkle">
+                    <div class="lullaby-icon">⭐</div>
+                    <div class="lullaby-info">
+                        <div class="lullaby-name">小星星</div>
+                        <div class="lullaby-desc">Twinkle Twinkle Little Star</div>
+                    </div>
+                    <div class="lullaby-status">
+                        <div class="play-indicator"></div>
+                    </div>
+                </button>
+                <button class="lullaby-card" data-lullaby="brahms" id="lullaby-brahms">
+                    <div class="lullaby-icon">🎶</div>
+                    <div class="lullaby-info">
+                        <div class="lullaby-name">勃拉姆斯摇篮曲</div>
+                        <div class="lullaby-desc">Brahms' Lullaby</div>
+                    </div>
+                    <div class="lullaby-status">
+                        <div class="play-indicator"></div>
+                    </div>
+                </button>
+                <button class="lullaby-card" data-lullaby="mozzart" id="lullaby-mozzart">
+                    <div class="lullaby-icon">🎹</div>
+                    <div class="lullaby-info">
+                        <div class="lullaby-name">莫扎特摇篮曲</div>
+                        <div class="lullaby-desc">Mozart's Lullaby</div>
+                    </div>
+                    <div class="lullaby-status">
+                        <div class="play-indicator"></div>
+                    </div>
+                </button>
+            </div>
+        </section>
+
+        <!-- Night Light Section -->
+        <section class="section">
+            <h2 class="section-title">
+                <span class="section-icon">💡</span>
+                夜灯
+            </h2>
+            <div class="nightlight-controls">
+                <div class="nightlight-brightness">
+                    <label class="control-label">亮度</label>
+                    <input type="range" id="brightnessSlider" min="0" max="100" value="30"
+                        class="styled-range brightness-range">
+                    <span class="range-value" id="brightnessValue">30%</span>
+                </div>
+                <div class="color-temp-control">
+                    <label class="control-label">色温</label>
+                    <div class="color-temp-options" id="colorTempOptions">
+                        <button class="color-temp-btn active" data-temp="warm" id="temp-warm"
+                            style="--btn-color: #ffb347;">暖黄</button>
+                        <button class="color-temp-btn" data-temp="soft" id="temp-soft"
+                            style="--btn-color: #b19cd9;">柔紫</button>
+                        <button class="color-temp-btn" data-temp="blue" id="temp-blue"
+                            style="--btn-color: #87ceeb;">淡蓝</button>
+                        <button class="color-temp-btn" data-temp="rose" id="temp-rose"
+                            style="--btn-color: #f4a6b0;">玫粉</button>
+                    </div>
+                </div>
+            </div>
+        </section>
+    </div>
+
+    <!-- Bottom Control Bar -->
+    <div class="bottom-bar">
+        <div class="bottom-bar-content">
+            <!-- Master Volume -->
+            <div class="master-volume-section">
+                <span class="volume-icon" id="volumeIcon">🔊</span>
+                <input type="range" id="masterVolume" min="0" max="100" value="60" class="styled-range master-range">
+                <span class="volume-value" id="volumeValue">60%</span>
+            </div>
+
+            <!-- Play/Pause Button -->
+            <button class="play-btn" id="playPauseBtn">
+                <svg class="play-icon" id="playIcon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M8 5v14l11-7z" />
+                </svg>
+                <svg class="pause-icon hidden" id="pauseIcon" viewBox="0 0 24 24" fill="currentColor">
+                    <path d="M6 19h4V5H6v14zm8-14v14h4V5h-4z" />
+                </svg>
+            </button>
+
+            <!-- Timer -->
+            <div class="timer-section">
+                <button class="timer-btn" id="timerBtn">
+                    <span class="timer-icon">⏱️</span>
+                    <span class="timer-label" id="timerLabel">定时</span>
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Timer Modal -->
+    <div class="modal-overlay hidden" id="timerModal">
+        <div class="modal-card">
+            <h3 class="modal-title">⏱️ 睡眠定时器</h3>
+            <div class="timer-options">
+                <button class="timer-option" data-minutes="15" id="timer-15">15 分钟</button>
+                <button class="timer-option" data-minutes="30" id="timer-30">30 分钟</button>
+                <button class="timer-option" data-minutes="45" id="timer-45">45 分钟</button>
+                <button class="timer-option" data-minutes="60" id="timer-60">1 小时</button>
+                <button class="timer-option" data-minutes="90" id="timer-90">1.5 小时</button>
+                <button class="timer-option active" data-minutes="0" id="timer-0">持续播放</button>
+            </div>
+            <div class="timer-countdown hidden" id="timerCountdown">
+                <span class="countdown-label">剩余时间</span>
+                <span class="countdown-time" id="countdownTime">00:00</span>
+            </div>
+            <button class="modal-close-btn" id="timerModalClose">确定</button>
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+
+</html>
