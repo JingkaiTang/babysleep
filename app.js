@@ -797,30 +797,33 @@ function updateNightLightOverlay() {
     const brightPct = nightBrightness / 100;
 
     if (overlay) {
-        // Visible radial gradient with meaningful opacity range 0 → 0.6
-        const innerOpacity = (brightPct * 0.6).toFixed(3);
-        const midOpacity = (brightPct * 0.25).toFixed(3);
+        // Strong radial gradient — very visible at higher brightness
+        const innerOpacity = (brightPct * 0.85).toFixed(3);
+        const midOpacity = (brightPct * 0.4).toFixed(3);
+        const outerOpacity = (brightPct * 0.12).toFixed(3);
         overlay.style.opacity = brightPct > 0.02 ? '1' : '0';
         overlay.style.background = `
-            radial-gradient(ellipse at 50% 20%,
+            radial-gradient(ellipse at 50% 15%,
                 rgba(${c.r}, ${c.g}, ${c.b}, ${innerOpacity}) 0%,
-                rgba(${c.r}, ${c.g}, ${c.b}, ${midOpacity}) 35%,
-                transparent 70%
+                rgba(${c.r}, ${c.g}, ${c.b}, ${midOpacity}) 30%,
+                rgba(${c.r}, ${c.g}, ${c.b}, ${outerOpacity}) 55%,
+                transparent 80%
             )
         `;
     }
 
-    // Also tint the body with a subtle edge vignette
-    const edgeOpacity = (brightPct * 0.15).toFixed(3);
-    document.body.style.boxShadow = `inset 0 0 300px rgba(${c.r}, ${c.g}, ${c.b}, ${edgeOpacity})`;
+    // Strong edge vignette on body
+    const edgeOpacity = (brightPct * 0.35).toFixed(3);
+    document.body.style.boxShadow = `inset 0 0 400px rgba(${c.r}, ${c.g}, ${c.b}, ${edgeOpacity})`;
 
-    // Update moon glow to match
+    // Update moon glow to match — larger and brighter
     const moon = document.querySelector('.moon');
     if (moon) {
         const moonOpacity = brightPct;
         moon.style.boxShadow = `
-            0 0 ${20 + nightBrightness * 0.8}px rgba(${c.r}, ${c.g}, ${c.b}, ${0.4 * moonOpacity}),
-            0 0 ${60 + nightBrightness * 1.5}px rgba(${c.r}, ${c.g}, ${c.b}, ${0.2 * moonOpacity})
+            0 0 ${25 + nightBrightness}px rgba(${c.r}, ${c.g}, ${c.b}, ${0.5 * moonOpacity}),
+            0 0 ${80 + nightBrightness * 2}px rgba(${c.r}, ${c.g}, ${c.b}, ${0.3 * moonOpacity}),
+            0 0 ${150 + nightBrightness * 3}px rgba(${c.r}, ${c.g}, ${c.b}, ${0.1 * moonOpacity})
         `;
     }
 }
@@ -841,11 +844,36 @@ function updateClock() {
 // =============================================
 
 function savePreferences() {
+    // Collect active noise types and their volumes
+    const activeNoises = {};
+    document.querySelectorAll('.sound-card.active').forEach(card => {
+        const type = card.dataset.sound;
+        const slider = document.querySelector(`.mini-volume[data-sound="${type}"]`);
+        activeNoises[type] = slider ? parseInt(slider.value) : 50;
+    });
+
+    // Collect all noise slider values (even inactive)
+    const noiseVolumes = {};
+    document.querySelectorAll('.mini-volume').forEach(slider => {
+        noiseVolumes[slider.dataset.sound] = parseInt(slider.value);
+    });
+
+    // Get active lullaby and all lullaby volumes
+    const activeLullabyCard = document.querySelector('.lullaby-card.active');
+    const lullabyVolumes = {};
+    document.querySelectorAll('.lullaby-volume').forEach(slider => {
+        lullabyVolumes[slider.dataset.lullaby] = parseInt(slider.value);
+    });
+
     const prefs = {
         masterVolume: document.getElementById('masterVolume').value,
         brightness: nightBrightness,
         colorTemp: nightColorTemp,
         timerMinutes,
+        activeNoises,
+        noiseVolumes,
+        activeLullaby: activeLullabyCard ? activeLullabyCard.dataset.lullaby : null,
+        lullabyVolumes,
     };
     localStorage.setItem('babysleep_prefs', JSON.stringify(prefs));
 }
@@ -855,22 +883,86 @@ function loadPreferences() {
         const raw = localStorage.getItem('babysleep_prefs');
         if (!raw) return;
         const prefs = JSON.parse(raw);
+
+        // Master volume
         if (prefs.masterVolume !== undefined) {
             document.getElementById('masterVolume').value = prefs.masterVolume;
             document.getElementById('volumeValue').textContent = prefs.masterVolume + '%';
         }
+
+        // Brightness
         if (prefs.brightness !== undefined) {
             nightBrightness = prefs.brightness;
             document.getElementById('brightnessSlider').value = prefs.brightness;
             document.getElementById('brightnessValue').textContent = prefs.brightness + '%';
         }
+
+        // Color temp
         if (prefs.colorTemp) {
             nightColorTemp = prefs.colorTemp;
             document.querySelectorAll('.color-temp-btn').forEach(btn => {
                 btn.classList.toggle('active', btn.dataset.temp === prefs.colorTemp);
             });
         }
+
+        // Restore all noise slider values
+        if (prefs.noiseVolumes) {
+            Object.entries(prefs.noiseVolumes).forEach(([type, val]) => {
+                const slider = document.querySelector(`.mini-volume[data-sound="${type}"]`);
+                if (slider) slider.value = val;
+            });
+        }
+
+        // Restore all lullaby slider values
+        if (prefs.lullabyVolumes) {
+            Object.entries(prefs.lullabyVolumes).forEach(([name, val]) => {
+                const slider = document.querySelector(`.lullaby-volume[data-lullaby="${name}"]`);
+                if (slider) slider.value = val;
+            });
+        }
+
+        // Auto-start saved active noises (needs user gesture, so defer)
+        if (prefs.activeNoises && Object.keys(prefs.activeNoises).length > 0) {
+            window._pendingNoises = prefs.activeNoises;
+        }
+        if (prefs.activeLullaby) {
+            window._pendingLullaby = prefs.activeLullaby;
+        }
     } catch (e) { }
+}
+
+// Auto-restore sounds on first user interaction (required by browser autoplay policy)
+function restoreSavedSounds() {
+    initAudioContext();
+
+    if (window._pendingNoises) {
+        Object.keys(window._pendingNoises).forEach(type => {
+            const card = document.querySelector(`.sound-card[data-sound="${type}"]`);
+            if (card && !card.classList.contains('active')) {
+                card.classList.add('active');
+                startNoise(type);
+            }
+        });
+        delete window._pendingNoises;
+    }
+
+    if (window._pendingLullaby) {
+        const name = window._pendingLullaby;
+        const card = document.querySelector(`.lullaby-card[data-lullaby="${name}"]`);
+        if (card && !card.classList.contains('active')) {
+            document.querySelectorAll('.lullaby-card.active').forEach(c => c.classList.remove('active'));
+            card.classList.add('active');
+            playLullaby(name);
+        }
+        delete window._pendingLullaby;
+    }
+
+    isPlaying = Object.keys(activeSources).length > 0 || currentLullaby;
+    updatePlayPauseUI();
+
+    // Remove this listener after first trigger
+    document.removeEventListener('click', restoreSavedSounds);
+    document.removeEventListener('touchstart', restoreSavedSounds);
 }
 
 // =============================================
@@ -880,6 +972,12 @@ function loadPreferences() {
 document.addEventListener('DOMContentLoaded', () => {
     // Load prefs
     loadPreferences();
+
+    // Register auto-restore on first user interaction
+    if (window._pendingNoises || window._pendingLullaby) {
+        document.addEventListener('click', restoreSavedSounds, { once: true });
+        document.addEventListener('touchstart', restoreSavedSounds, { once: true });
+    }
 
     // Init canvas
     resizeCanvas();
@@ -927,6 +1025,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     (slider.value / 100) * norm, audioCtx.currentTime + 0.05
                 );
             }
+            savePreferences();
         });
 
         // Prevent card toggle
@@ -953,6 +1052,7 @@ document.addEventListener('DOMContentLoaded', () => {
                 playLullaby(name);
             }
             updatePlayPauseUI();
+            savePreferences();
         });
     });
 
@@ -965,6 +1065,7 @@ document.addEventListener('DOMContentLoaded', () => {
                     (slider.value / 100) * 0.85, audioCtx.currentTime + 0.05
                 );
             }
+            savePreferences();
         });
         slider.addEventListener('click', e => e.stopPropagation());
     });

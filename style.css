@@ -114,20 +114,31 @@ input[type="range"] {
     z-index: 1;
     pointer-events: none;
     transition: background 0.8s ease, opacity 0.8s ease;
-    mix-blend-mode: screen;
     opacity: 0;
-    background: radial-gradient(ellipse at 50% 30%, rgba(255, 179, 71, 0.35) 0%, rgba(255, 179, 71, 0.1) 40%, transparent 70%);
+    background: radial-gradient(ellipse at 50% 30%, rgba(255, 179, 71, 0.5) 0%, rgba(255, 179, 71, 0.15) 50%, transparent 80%);
 }
 
 /* ========================= */
 /*         Moon              */
 /* ========================= */
 
-.moon-container {
+.moon-link {
     position: fixed;
     top: 40px;
     right: 40px;
-    z-index: 1;
+    z-index: 15;
+    text-decoration: none;
+    pointer-events: auto;
+    cursor: pointer;
+    transition: transform var(--transition-normal);
+}
+
+.moon-link:hover {
+    transform: scale(1.08);
+}
+
+.moon-container {
+    position: relative;
     pointer-events: none;
     transition: opacity var(--transition-slow);
 }
