@@ -274,45 +274,99 @@ function startOceanSound(masterNode) {
 }
 
 function startHeartbeatSound(masterNode) {
-    // Heartbeat = periodic low-freq oscillator bursts
-    const heartGain = audioCtx.createGain();
-    heartGain.gain.value = 0;
-    heartGain.connect(masterNode);
+    // Heartbeat = layered oscillators with mid-range harmonics for small speakers
+    // Layer 1: Bass thump (80Hz) - audible on most speakers
+    const bassOsc = audioCtx.createOscillator();
+    bassOsc.type = 'sine';
+    bassOsc.frequency.value = 80;
+    const bassGain = audioCtx.createGain();
+    bassGain.gain.value = 0;
+    bassOsc.connect(bassGain);
+    bassGain.connect(masterNode);
 
-    const osc = audioCtx.createOscillator();
-    osc.type = 'sine';
-    osc.frequency.value = 55;
-    const osc2 = audioCtx.createOscillator();
-    osc2.type = 'sine';
-    osc2.frequency.value = 45;
+    // Layer 2: Sub-bass body (65Hz)
+    const subOsc = audioCtx.createOscillator();
+    subOsc.type = 'sine';
+    subOsc.frequency.value = 65;
     const subGain = audioCtx.createGain();
-    subGain.gain.value = 0.5;
+    subGain.gain.value = 0;
+    subOsc.connect(subGain);
+    subGain.connect(masterNode);
 
-    osc.connect(heartGain);
-    osc2.connect(subGain);
-    subGain.connect(heartGain);
-    osc.start();
-    osc2.start();
+    // Layer 3: Mid-range harmonic (160Hz) - makes heartbeat audible on phone speakers
+    const midOsc = audioCtx.createOscillator();
+    midOsc.type = 'sine';
+    midOsc.frequency.value = 160;
+    const midGain = audioCtx.createGain();
+    midGain.gain.value = 0;
+    midOsc.connect(midGain);
+    midGain.connect(masterNode);
 
-    // Double-thump pattern
+    // Layer 4: Higher harmonic click (240Hz) - for tiny speakers
+    const clickOsc = audioCtx.createOscillator();
+    clickOsc.type = 'triangle';
+    clickOsc.frequency.value = 240;
+    const clickGain = audioCtx.createGain();
+    clickGain.gain.value = 0;
+    clickOsc.connect(clickGain);
+    clickGain.connect(masterNode);
+
+    bassOsc.start();
+    subOsc.start();
+    midOsc.start();
+    clickOsc.start();
+
+    // Double-thump pattern: lub-dub
     function beat() {
         const now = audioCtx.currentTime;
-        // lub
-        heartGain.gain.cancelScheduledValues(now);
-        heartGain.gain.setValueAtTime(0, now);
-        heartGain.gain.linearRampToValueAtTime(1.0, now + 0.03);
-        heartGain.gain.exponentialRampToValueAtTime(0.001, now + 0.15);
-        // dub
-        heartGain.gain.setValueAtTime(0, now + 0.18);
-        heartGain.gain.linearRampToValueAtTime(0.7, now + 0.21);
-        heartGain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+
+        // === LUB (first beat, stronger) ===
+        // Bass
+        bassGain.gain.cancelScheduledValues(now);
+        bassGain.gain.setValueAtTime(0, now);
+        bassGain.gain.linearRampToValueAtTime(0.9, now + 0.02);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, now + 0.12);
+        // Sub
+        subGain.gain.cancelScheduledValues(now);
+        subGain.gain.setValueAtTime(0, now);
+        subGain.gain.linearRampToValueAtTime(0.5, now + 0.02);
+        subGain.gain.exponentialRampToValueAtTime(0.001, now + 0.10);
+        // Mid harmonic
+        midGain.gain.cancelScheduledValues(now);
+        midGain.gain.setValueAtTime(0, now);
+        midGain.gain.linearRampToValueAtTime(0.35, now + 0.01);
+        midGain.gain.exponentialRampToValueAtTime(0.001, now + 0.08);
+        // Click
+        clickGain.gain.cancelScheduledValues(now);
+        clickGain.gain.setValueAtTime(0, now);
+        clickGain.gain.linearRampToValueAtTime(0.2, now + 0.005);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, now + 0.04);
+
+        // === DUB (second beat, softer) ===
+        const dub = now + 0.2;
+        // Bass
+        bassGain.gain.setValueAtTime(0, dub);
+        bassGain.gain.linearRampToValueAtTime(0.6, dub + 0.02);
+        bassGain.gain.exponentialRampToValueAtTime(0.001, dub + 0.10);
+        // Sub
+        subGain.gain.setValueAtTime(0, dub);
+        subGain.gain.linearRampToValueAtTime(0.35, dub + 0.02);
+        subGain.gain.exponentialRampToValueAtTime(0.001, dub + 0.08);
+        // Mid harmonic
+        midGain.gain.setValueAtTime(0, dub);
+        midGain.gain.linearRampToValueAtTime(0.25, dub + 0.01);
+        midGain.gain.exponentialRampToValueAtTime(0.001, dub + 0.06);
+        // Click
+        clickGain.gain.setValueAtTime(0, dub);
+        clickGain.gain.linearRampToValueAtTime(0.12, dub + 0.005);
+        clickGain.gain.exponentialRampToValueAtTime(0.001, dub + 0.03);
     }
 
     beat();
     const intervalId = setInterval(beat, 800); // ~75 bpm
 
     activeSources['heartbeat'] = {
-        oscillators: [osc, osc2],
+        oscillators: [bassOsc, subOsc, midOsc, clickOsc],
         gain: masterNode,
         intervalId
     };
