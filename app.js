@@ -38,7 +38,7 @@ function initAudioContext() {
     if (audioCtx) return;
     audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     masterGain = audioCtx.createGain();
-    masterGain.gain.value = 0.6;
+    masterGain.gain.value = 0.9;
     masterGain.connect(audioCtx.destination);
 }
 
@@ -86,12 +86,12 @@ function createNoiseBuffer(type, durationSec = 4) {
 
 // Volume normalization multipliers — tuned so all sounds have similar perceived loudness
 const VOLUME_NORMALIZE = {
-    white: 0.18,
-    pink: 0.35,
-    brown: 0.22,
-    rain: 0.40,
-    ocean: 0.50,
-    heartbeat: 0.55,
+    white: 0.35,
+    pink: 0.65,
+    brown: 0.45,
+    rain: 0.70,
+    ocean: 0.85,
+    heartbeat: 0.90,
 };
 
 function startNoise(type) {
@@ -388,7 +388,8 @@ function playLullaby(name) {
     currentLullaby = name;
 
     lullabyGain = audioCtx.createGain();
-    lullabyGain.gain.value = 0.45;
+    const volSlider = document.querySelector(`.lullaby-volume[data-lullaby="${name}"]`);
+    lullabyGain.gain.value = (volSlider ? volSlider.value / 100 : 0.7) * 0.85;
     lullabyGain.connect(masterGain);
 
     function playOnce() {
@@ -411,8 +412,8 @@ function playLullaby(name) {
 
             const noteGain = audioCtx.createGain();
             noteGain.gain.setValueAtTime(0, time);
-            noteGain.gain.linearRampToValueAtTime(0.3, time + 0.04);
-            noteGain.gain.setValueAtTime(0.3, time + duration * 0.7);
+            noteGain.gain.linearRampToValueAtTime(0.5, time + 0.04);
+            noteGain.gain.setValueAtTime(0.5, time + duration * 0.7);
             noteGain.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.98);
 
             // Slight chorus effect with detuned oscillator
@@ -423,7 +424,7 @@ function playLullaby(name) {
 
             const noteGain2 = audioCtx.createGain();
             noteGain2.gain.setValueAtTime(0, time);
-            noteGain2.gain.linearRampToValueAtTime(0.08, time + 0.04);
+            noteGain2.gain.linearRampToValueAtTime(0.15, time + 0.04);
             noteGain2.gain.exponentialRampToValueAtTime(0.001, time + duration * 0.98);
 
             osc.connect(noteGain);
@@ -880,7 +881,10 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Lullaby cards
     document.querySelectorAll('.lullaby-card').forEach(card => {
-        card.addEventListener('click', () => {
+        card.addEventListener('click', (e) => {
+            // Don't toggle when interacting with the volume slider
+            if (e.target.classList.contains('lullaby-volume')) return;
+
             initAudioContext();
             const name = card.dataset.lullaby;
 
@@ -896,6 +900,19 @@ document.addEventListener('DOMContentLoaded', () => {
             }
             updatePlayPauseUI();
         });
+    });
+
+    // Lullaby volume sliders
+    document.querySelectorAll('.lullaby-volume').forEach(slider => {
+        slider.addEventListener('input', (e) => {
+            e.stopPropagation();
+            if (lullabyGain && currentLullaby === slider.dataset.lullaby) {
+                lullabyGain.gain.linearRampToValueAtTime(
+                    (slider.value / 100) * 0.85, audioCtx.currentTime + 0.05
+                );
+            }
+        });
+        slider.addEventListener('click', e => e.stopPropagation());
     });
 
     // Master volume
